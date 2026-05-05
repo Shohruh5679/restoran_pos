@@ -1,0 +1,49 @@
+{% extends 'pos/base.html' %}
+
+{% block title %}Admin - Hisobot{% endblock %}
+
+{% block content %}
+<div class="admin-app" style="display:block;">
+    <div class="header">
+        <h1>⚙️ Admin</h1>
+        <div class="user-info">
+            <span>Admin</span>
+            <span class="role-badge">Admin</span>
+            <a href="{% url 'logout' %}" class="logout-btn">Chiqish</a>
+        </div>
+    </div>
+
+    <div class="admin-tabs">
+        <a href="{% url 'admin_orders' %}">📋 Zakazlar</a>
+        <a href="{% url 'admin_menu' %}">🍽️ Menyu</a>
+        <a href="{% url 'admin_tables' %}">🪑 Stollar</a>
+        <a href="{% url 'admin_users' %}">👤 Xodimlar</a>
+        <a href="{% url 'admin_reports' %}" class="active">📊 Hisobot</a>
+    </div>
+
+    <div class="admin-content">
+        <div class="admin-card">
+            <h4>⚙️ QQS Stavkasi</h4>
+            <div style="font-size:28px;color:#e94560;font-weight:bold;">{{ tax_rate|default:'12' }}%</div>
+            <p style="color:#aaa;font-size:13px;margin-top:5px;">Admin paneldan o'zgartirish mumkin</p>
+        </div>
+
+        <div class="admin-card">
+            <h4>📊 Bugun</h4>
+            <div style="font-size:28px;color:#4ecca3;font-weight:bold;">{{ today_total|floatformat:0 }} so'm</div>
+            <p style="color:#aaa;font-size:13px;margin-top:5px;">Zakazlar: {{ today_count }}</p>
+        </div>
+
+        <div class="admin-card">
+            <h4>📈 Jami</h4>
+            <div style="font-size:28px;color:#e94560;font-weight:bold;">{{ all_total|floatformat:0 }} so'm</div>
+            <p style="color:#aaa;font-size:13px;margin-top:5px;">Jami zakazlar: {{ all_count }}</p>
+        </div>
+
+        <form method="post" action="{% url 'clear_history' %}" style="margin-top:10px;">
+            {% csrf_token %}
+            <button type="submit" class="admin-btn danger" onclick="return confirm('Barcha tarixni o\'chirishni xohlaysizmi?')">Tarixni tozalash</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

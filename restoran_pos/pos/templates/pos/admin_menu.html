@@ -1,0 +1,45 @@
+{% extends 'pos/base.html' %}
+
+{% block title %}Admin - Menyu{% endblock %}
+
+{% block content %}
+<div class="admin-app" style="display:block;">
+    <div class="header">
+        <h1>⚙️ Admin</h1>
+        <div class="user-info">
+            <span>Admin</span>
+            <span class="role-badge">Admin</span>
+            <a href="{% url 'logout' %}" class="logout-btn">Chiqish</a>
+        </div>
+    </div>
+
+    <div class="admin-tabs">
+        <a href="{% url 'admin_orders' %}">📋 Zakazlar</a>
+        <a href="{% url 'admin_menu' %}" class="active">🍽️ Menyu</a>
+        <a href="{% url 'admin_tables' %}">🪑 Stollar</a>
+        <a href="{% url 'admin_users' %}">👤 Xodimlar</a>
+        <a href="{% url 'admin_reports' %}">📊 Hisobot</a>
+    </div>
+
+    <div class="admin-content">
+        <a href="{% url 'menu_add' %}" class="admin-btn" style="display:block;text-align:center;margin-bottom:20px;text-decoration:none;">+ Yangi taom qo'shish</a>
+
+        <h3 style="color:#e94560;margin-bottom:15px;">Barcha taomlar</h3>
+
+        {% for item in menu_items %}
+        <div class="swipe-item">
+            <div class="swipe-content">
+                <div style="font-weight:bold;">{{ item.name }}</div>
+                <div style="color:#4ecca3;font-size:13px;">{{ item.price|floatformat:0 }} so'm · {{ item.category.name }}</div>
+            </div>
+            <div class="swipe-actions">
+                <a href="{% url 'menu_edit' item.id %}" class="swipe-edit">✏️</a>
+                <a href="{% url 'menu_delete' item.id %}" class="swipe-delete">🗑️</a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state"><p>Menyu bo'sh</p></div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

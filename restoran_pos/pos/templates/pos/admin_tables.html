@@ -1,0 +1,53 @@
+{% extends 'pos/base.html' %}
+
+{% block title %}Admin - Stollar{% endblock %}
+
+{% block content %}
+<div class="admin-app" style="display:block;">
+    <div class="header">
+        <h1>⚙️ Admin</h1>
+        <div class="user-info">
+            <span>Admin</span>
+            <span class="role-badge">Admin</span>
+            <a href="{% url 'logout' %}" class="logout-btn">Chiqish</a>
+        </div>
+    </div>
+
+    <div class="admin-tabs">
+        <a href="{% url 'admin_orders' %}">📋 Zakazlar</a>
+        <a href="{% url 'admin_menu' %}">🍽️ Menyu</a>
+        <a href="{% url 'admin_tables' %}" class="active">🪑 Stollar</a>
+        <a href="{% url 'admin_users' %}">👤 Xodimlar</a>
+        <a href="{% url 'admin_reports' %}">📊 Hisobot</a>
+    </div>
+
+    <div class="admin-content">
+        <div class="admin-card">
+            <h4>Stollar soni</h4>
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Jami stollar</label>
+                    <input type="number" name="count" value="{{ total_count }}" min="1" max="100" class="form-control">
+                </div>
+                <button type="submit" class="admin-btn">Saqlash</button>
+            </form>
+        </div>
+
+        <div class="admin-card" style="margin-top:15px;">
+            <h4>Stollar holati</h4>
+            <p style="color:#aaa;font-size:14px;">Jami stollar: {{ total_count }}</p>
+            <p style="color:#4ecca3;font-size:14px;">Faol stollar: {{ active_count }}</p>
+        </div>
+
+        <div class="tables-grid" style="margin-top:20px;">
+            {% for table in tables %}
+            <div class="table-card {% if not table.is_active %}active{% endif %}">
+                <div class="table-num">{{ table.number }}</div>
+                <div class="table-status">{% if table.is_active %}Faol{% else %}O'chirilgan{% endif %}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

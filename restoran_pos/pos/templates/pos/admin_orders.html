@@ -1,0 +1,52 @@
+{% extends 'pos/base.html' %}
+
+{% block title %}Admin - Zakazlar{% endblock %}
+
+{% block content %}
+<div class="admin-app" style="display:block;">
+    <div class="header">
+        <h1>⚙️ Admin</h1>
+        <div class="user-info">
+            <span>Admin</span>
+            <span class="role-badge">Admin</span>
+            <a href="{% url 'logout' %}" class="logout-btn">Chiqish</a>
+        </div>
+    </div>
+
+    <div class="admin-tabs">
+        <a href="{% url 'admin_orders' %}" class="active">📋 Zakazlar</a>
+        <a href="{% url 'admin_menu' %}">🍽️ Menyu</a>
+        <a href="{% url 'admin_tables' %}">🪑 Stollar</a>
+        <a href="{% url 'admin_users' %}">👤 Xodimlar</a>
+        <a href="{% url 'admin_reports' %}">📊 Hisobot</a>
+    </div>
+
+    <div class="admin-content">
+        <h3 style="color:#e94560;margin-bottom:15px;">Faol zakazlar</h3>
+
+        {% for order in orders %}
+        <div class="admin-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <h4>Stol #{{ order.table.number }}</h4>
+                <span style="color:#4ecca3;font-weight:bold;">{{ order.total|floatformat:0 }} so'm</span>
+            </div>
+            <p style="color:#aaa;font-size:13px;">
+                {% for item in order.items.all %}
+                    {{ item.quantity }}x {{ item.menu_item.name }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </p>
+            <p style="color:#888;font-size:12px;margin-top:5px;">
+                Ofitsiant: {{ order.waiter.first_name|default:order.waiter.username }} | 
+                {{ order.created_at|date:"H:i" }}
+            </p>
+            <form method="post" action="{% url 'clear_order' order.id %}" style="margin-top:10px;">
+                {% csrf_token %}
+                <button type="submit" class="admin-btn danger">Zakazni o'chirish</button>
+            </form>
+        </div>
+        {% empty %}
+        <div class="empty-state"><p>Faol zakazlar yo'q</p></div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

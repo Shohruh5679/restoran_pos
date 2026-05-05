@@ -1,0 +1,34 @@
+{% extends 'pos/base.html' %}
+
+{% block title %}Ofitsiant - Stollar{% endblock %}
+
+{% block content %}
+<div class="app" id="waiterApp">
+    <div class="header">
+        <h1>🍽️ Stollar</h1>
+        <div class="user-info">
+            <span>{{ user_name }}</span>
+            <span class="role-badge">Ofitsiant</span>
+            <span style="font-size:11px;color:#4ecca3;">QQS: {{ tax_rate|default:'12' }}%</span>
+            <a href="{% url 'logout' %}" class="logout-btn">Chiqish</a>
+        </div>
+    </div>
+
+    <div class="tables-section">
+        <h3>Stolni tanlang</h3>
+        <div class="tables-grid">
+            {% for data in table_data %}
+            <a href="{% url 'table_orders' data.table.id %}" class="table-card {% if data.has_order %}has-order{% endif %}">
+                <div class="table-num">{{ data.table.number }}</div>
+                <div class="table-status">
+                    {% if data.has_order %}Zakaz bor{% else %}Bo'sh{% endif %}
+                </div>
+                {% if data.has_order %}
+                <div class="table-total">{{ data.total|floatformat:0 }} so'm</div>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

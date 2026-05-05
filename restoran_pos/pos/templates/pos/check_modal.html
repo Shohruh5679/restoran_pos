@@ -1,0 +1,47 @@
+{% extends 'pos/base.html' %}
+
+{% block title %}Chek - Stol #{{ order.table.number }}{% endblock %}
+
+{% block content %}
+<div class="check-container">
+    <div class="check-content">
+        <h3>🍽️ RESTORAN</h3>
+        <p class="check-date">{{ order.created_at|date:"d.m.Y H:i" }}</p>
+        <p class="check-table">Stol #{{ order.table.number }}</p>
+
+        <div class="check-items">
+            {% for item in order.items.all %}
+            <div class="check-item">
+                <span>{{ item.quantity }}x {{ item.menu_item.name }}</span>
+                <span>{{ item.total|floatformat:0 }} so'm</span>
+            </div>
+            {% endfor %}
+            <div class="check-item" style="border-top:1px dashed #ccc;margin-top:10px;padding-top:10px;">
+                <span>QQS ({{ tax_rate|default:'12' }}%)</span>
+                <span>{{ order.tax|floatformat:0 }} so'm</span>
+            </div>
+        </div>
+
+        <div class="check-total">
+            <span>JAMI:</span>
+            <span>{{ order.total|floatformat:0 }} so'm</span>
+        </div>
+
+        <button class="modal-close" onclick="window.print()">🖨️ Chop etish</button>
+        <a href="{% url 'table_orders' order.table.id %}" class="modal-close" style="display:block;text-align:center;text-decoration:none;margin-top:8px;">Yopish</a>
+    </div>
+</div>
+
+<style>
+.check-container { display:flex; justify-content:center; align-items:center; min-height:100vh; background:#fff; padding:20px; }
+.check-content { background:#fff; color:#000; width:100%; max-width:340px; border-radius:12px; padding:25px; border:2px solid #000; }
+.check-content h3 { text-align:center; margin-bottom:5px; color:#000; }
+.check-date { text-align:center; font-size:12px; color:#666; margin-bottom:5px; }
+.check-table { text-align:center; font-size:15px; margin-bottom:15px; font-weight:bold; }
+.check-items { margin:15px 0; }
+.check-item { display:flex; justify-content:space-between; padding:6px 0; font-size:14px; border-bottom:1px dashed #ddd; }
+.check-total { border-top:2px dashed #000; margin-top:15px; padding-top:12px; font-size:18px; font-weight:bold; display:flex; justify-content:space-between; }
+.modal-close { width:100%; margin-top:15px; padding:12px; background:#000; color:#fff; border:none; border-radius:8px; font-size:15px; cursor:pointer; }
+@media print { .modal-close { display:none; } body { background:#fff; } }
+</style>
+{% endblock %}

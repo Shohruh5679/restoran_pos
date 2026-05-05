@@ -1,0 +1,37 @@
+{% extends 'pos/base.html' %}
+
+{% block title %}Kirish - Restoran{% endblock %}
+
+{% block content %}
+<div class="login-screen">
+    <div class="login-box">
+        <h2>🍽️ Restoran</h2>
+
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+
+            <div class="role-select">
+                <label class="role-option">
+                    <input type="radio" name="role" value="waiter" checked>
+                    <span>Ofitsiant</span>
+                </label>
+                <label class="role-option">
+                    <input type="radio" name="role" value="admin">
+                    <span>Admin</span>
+                </label>
+            </div>
+
+            <input type="text" name="username" placeholder="Login" required autocomplete="off">
+            <input type="password" name="password" placeholder="Parol" required>
+
+            <button type="submit" class="login-btn">Kirish</button>
+        </form>
+
+        {% if messages %}
+            {% for message in messages %}
+                <p class="error-msg" style="display:block;">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

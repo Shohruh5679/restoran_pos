@@ -1,0 +1,144 @@
+{% extends 'pos/base.html' %}
+
+{% block title %}Stol #{{ table.number }} - Zakaz{% endblock %}
+
+{% block content %}
+<div class="order-panel active">
+    <div class="order-header">
+        <h3>Stol #{{ table.number }}</h3>
+        <a href="{% url 'waiter_dashboard' %}" class="back-btn">← Orqaga</a>
+    </div>
+
+    <div class="menu-categories">
+        <a href="?category=all" class="{% if current_category == 'all' %}active{% endif %}">Hammasi</a>
+        {% for cat in categories %}
+        <a href="?category={{ cat.slug }}" class="{% if current_category == cat.slug %}active{% endif %}">{{ cat.name }}</a>
+        {% endfor %}
+    </div>
+
+    <div class="menu-items">
+        {% for item in menu_items %}
+        <div class="menu-item" onclick="addItem({{ item.id }})">
+            <div class="item-info">
+                <span class="item-name">{{ item.name }}</span>
+                <span class="item-price">{{ item.price|floatformat:0 }} so'm</span>
+            </div>
+            <button class="add-btn" onclick="event.stopPropagation(); addItem({{ item.id }})">+</button>
+        </div>
+        {% empty %}
+        <div class="empty-state"><p>Bu kategoriyada taom yo'q</p></div>
+        {% endfor %}
+    </div>
+
+    <div class="order-list-section">
+        <h4>📋 Zakazlar</h4>
+        <div id="orderItemsList">
+            {% if order %}
+                {% for item in order.items.all %}
+                <div class="order-item" data-item-id="{{ item.id }}">
+                    <div>
+                        <span class="qty">{{ item.quantity }}x</span>
+                        {{ item.menu_item.name }}
+                    </div>
+                    <div class="item-controls">
+                        <span class="item-total" data-item-total>{{ item.total|floatformat:0 }} so'm</span>
+                        <button class="qty-btn" onclick="changeQty({{ item.id }}, -1)">−</button>
+                        <button class="qty-btn" onclick="changeQty({{ item.id }}, 1)">+</button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state"><p>Zakazlar yo'q</p></div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="order-summary">
+        <div class="summary-row">
+            <span>Umumiy:</span>
+            <span id="subTotal">{% if order %}{{ order.subtotal|floatformat:0 }}{% else %}0{% endif %} so'm</span>
+        </div>
+        <div class="summary-row">
+            <span>QQS ({{ tax_rate|default:'12' }}%):</span>
+            <span id="taxAmount">{% if order %}{{ order.tax|floatformat:0 }}{% else %}0{% endif %} so'm</span>
+        </div>
+        <div class="summary-row total">
+            <span>JAMI:</span>
+            <span id="grandTotal">{% if order %}{{ order.total|floatformat:0 }}{% else %}0{% endif %} so'm</span>
+        </div>
+        <div class="action-btns">
+            {% if order %}
+            <a href="{% url 'save_order' order.id %}" class="btn-save">💾 Saqlash</a>
+            <a href="{% url 'print_check' order.id %}" class="btn-print" target="_blank">🧾 Chek</a>
+            <a href="{% url 'clear_order' order.id %}" class="btn-clear">🗑️</a>
+            {% else %}
+            <button class="btn-save" disabled>💾 Saqlash</button>
+            <button class="btn-print" disabled>🧾 Chek</button>
+            <button class="btn-clear" disabled>🗑️</button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function addItem(itemId) {
+    fetch(`/table/{{ table.id }}/add-item/${itemId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.item_name + " qo'shildi");
+            location.reload();
+        }
+    });
+}
+
+function changeQty(itemId, delta) {
+    fetch(`/order-item/${itemId}/change-qty/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `delta=${delta}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+</script>
+{% endblock %}

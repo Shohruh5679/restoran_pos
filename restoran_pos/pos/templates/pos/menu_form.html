@@ -1,0 +1,52 @@
+{% extends 'pos/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="admin-app" style="display:block;">
+    <div class="header">
+        <h1>⚙️ Admin</h1>
+        <div class="user-info">
+            <span>Admin</span>
+            <span class="role-badge">Admin</span>
+            <a href="{% url 'logout' %}" class="logout-btn">Chiqish</a>
+        </div>
+    </div>
+
+    <div class="admin-tabs">
+        <a href="{% url 'admin_orders' %}">📋 Zakazlar</a>
+        <a href="{% url 'admin_menu' %}" class="active">🍽️ Menyu</a>
+        <a href="{% url 'admin_tables' %}">🪑 Stollar</a>
+        <a href="{% url 'admin_users' %}">👤 Xodimlar</a>
+        <a href="{% url 'admin_reports' %}">📊 Hisobot</a>
+    </div>
+
+    <div class="admin-content">
+        <div class="admin-card">
+            <h4>{{ title }}</h4>
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Nomi</label>
+                    {{ form.name }}
+                </div>
+                <div class="form-group">
+                    <label>Narxi (so'm)</label>
+                    {{ form.price }}
+                </div>
+                <div class="form-group">
+                    <label>Kategoriya</label>
+                    {{ form.category }}
+                </div>
+                <div class="form-group">
+                    <label>
+                        {{ form.is_active }} Faol
+                    </label>
+                </div>
+                <button type="submit" class="admin-btn">{% if editing %}Saqlash{% else %}Qo'shish{% endif %}</button>
+                <a href="{% url 'admin_menu' %}" class="admin-btn secondary" style="display:block;text-align:center;text-decoration:none;">Bekor qilish</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

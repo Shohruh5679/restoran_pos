@@ -1,0 +1,19 @@
+{% extends 'pos/base.html' %}
+
+{% block title %}Taomni o'chirish{% endblock %}
+
+{% block content %}
+<div class="login-screen">
+    <div class="login-box" style="max-width:400px;">
+        <h2>⚠️ Diqqat</h2>
+        <p style="text-align:center;margin-bottom:20px;color:#aaa;">
+            "{{ item.name }}" ni o'chirishni xohlaysizmi?
+        </p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="login-btn" style="background:#ff4757;">Ha, o'chirish</button>
+            <a href="{% url 'admin_menu' %}" class="login-btn" style="display:block;text-align:center;text-decoration:none;margin-top:10px;background:#533483;">Bekor qilish</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends 'pos/base.html' %}
+
+{% block title %}Zakazni tozalash{% endblock %}
+
+{% block content %}
+<div class="login-screen">
+    <div class="login-box" style="max-width:400px;">
+        <h2>⚠️ Diqqat</h2>
+        <p style="text-align:center;margin-bottom:20px;color:#aaa;">
+            Stol #{{ order.table.number }} zakazini tozalashni xohlaysizmi?
+        </p>
+        <p style="text-align:center;margin-bottom:20px;color:#e94560;font-weight:bold;">
+            Jami: {{ order.total|floatformat:0 }} so'm
+        </p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="login-btn" style="background:#ff4757;">Ha, tozalash</button>
+            <a href="{% url 'table_orders' order.table.id %}" class="login-btn" style="display:block;text-align:center;text-decoration:none;margin-top:10px;background:#533483;">Bekor qilish</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
