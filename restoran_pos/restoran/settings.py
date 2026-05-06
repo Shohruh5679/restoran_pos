@@ -1,11 +1,16 @@
 """Django settings for restoran project."""
+
 from pathlib import Path
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-restoran-pos-system-secret-key'
+
 DEBUG = True
+
 ALLOWED_HOSTS = ['*']
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -17,8 +22,11 @@ INSTALLED_APPS = [
     'pos',
 ]
 
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -27,7 +35,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+
 ROOT_URLCONF = 'restoran.urls'
+
 
 TEMPLATES = [
     {
@@ -45,7 +55,9 @@ TEMPLATES = [
     },
 ]
 
+
 WSGI_APPLICATION = 'restoran.wsgi.application'
+
 
 DATABASES = {
     'default': {
@@ -54,6 +66,7 @@ DATABASES = {
     }
 }
 
+
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -61,15 +74,33 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+
 LANGUAGE_CODE = 'uz'
+
 TIME_ZONE = 'Asia/Tashkent'
+
 USE_I18N = True
+
 USE_TZ = True
 
-STATIC_URL = 'static/'
+
+# ===================== STATIC FILES =====================
+
+STATIC_URL = '/static/'
+
 STATICFILES_DIRS = [BASE_DIR / 'pos/static']
 
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+
+# ===================== DEFAULT =====================
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# ===================== LOGIN =====================
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
