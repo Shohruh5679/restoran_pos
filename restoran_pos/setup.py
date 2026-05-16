@@ -118,6 +118,7 @@ if __name__ == '__main__':
     create_tables()
     create_categories()
     create_menu_items()
+    create_settings()
     create_default_users()
 
     print("=" * 50)

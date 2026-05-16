@@ -3,14 +3,21 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.db.models import Sum, Count
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
-from datetime import datetime, timedelta
 
 from .models import Table, Category, MenuItem, Order, OrderItem, UserProfile, Settings
 from .forms import LoginForm, MenuItemForm, UserForm
+
+
+def get_or_create_user_profile(user):
+    default_role = 'admin' if user.is_staff or user.is_superuser else 'waiter'
+    profile, _ = UserProfile.objects.get_or_create(
+        user=user,
+        defaults={'role': default_role},
+    )
+    return profile
 
 
 def get_tax_rate():
@@ -36,17 +43,13 @@ def login_view(request):
             user = authenticate(username=username, password=password)
 
             if user is not None:
-                try:
-                    profile = user.userprofile
-                    if profile.role == role:
-                        login(request, user)
-                        if role == 'admin':
-                            return redirect('admin_dashboard')
-                        return redirect('waiter_dashboard')
-                    else:
-                        messages.error(request, 'Rol noto\'g\'ri tanlangan!')
-                except UserProfile.DoesNotExist:
-                    messages.error(request, 'Foydalanuvchi profili topilmadi!')
+                profile = get_or_create_user_profile(user)
+                if profile.role == role:
+                    login(request, user)
+                    if role == 'admin':
+                        return redirect('admin_dashboard')
+                    return redirect('waiter_dashboard')
+                messages.error(request, 'Rol noto\'g\'ri tanlangan!')
             else:
                 messages.error(request, 'Login yoki parol noto\'g\'ri!')
         else:
@@ -166,6 +169,7 @@ def change_qty(request, item_id):
         return JsonResponse({'success': False})
 
     order_item = get_object_or_404(OrderItem, id=item_id)
+    order = order_item.order
     delta = int(request.POST.get('delta', 0))
 
     order_item.quantity += delta
@@ -174,7 +178,6 @@ def change_qty(request, item_id):
     else:
         order_item.save()
 
-    order = order_item.order
     if order.items.count() == 0:
         order.delete()
         return JsonResponse({'success': True, 'order_total': 0, 'deleted': True})
@@ -204,9 +207,11 @@ def save_order(request, order_id):
 @login_required
 def clear_order(request, order_id):
     try:
-        if request.user.userprofile.role != 'waiter':
-            return redirect('admin_dashboard')
+        profile = get_or_create_user_profile(request.user)
     except UserProfile.DoesNotExist:
+        return redirect('login')
+
+    if profile.role not in ('waiter', 'admin'):
         return redirect('login')
 
     order = get_object_or_404(Order, id=order_id, status='active')
@@ -214,9 +219,14 @@ def clear_order(request, order_id):
         order.status = 'cancelled'
         order.save()
         messages.success(request, 'Zakaz tozalandi')
+        if profile.role == 'admin':
+            return redirect('admin_orders')
         return redirect('waiter_dashboard')
 
-    return render(request, 'pos/clear_confirm.html', {'order': order})
+    return render(request, 'pos/clear_confirm.html', {
+        'order': order,
+        'is_admin': profile.role == 'admin',
+    })
 
 
 @login_required
@@ -378,6 +388,9 @@ def admin_users(request):
     except UserProfile.DoesNotExist:
         return redirect('login')
 
+    for user in User.objects.filter(userprofile__isnull=True):
+        get_or_create_user_profile(user)
+
     users = User.objects.all().select_related('userprofile')
     return render(request, 'pos/admin_users.html', {'users': users})
 
@@ -423,18 +436,22 @@ def user_edit(request, user_id):
         return redirect('login')
 
     user = get_object_or_404(User, id=user_id)
+    profile = get_or_create_user_profile(user)
     if request.method == 'POST':
+        current_password = user.password
         form = UserForm(request.POST, instance=user)
         if form.is_valid():
             user = form.save(commit=False)
             password = form.cleaned_data.get('password')
             if password:
                 user.set_password(password)
+            else:
+                user.password = current_password
             user.save()
 
             role = request.POST.get('role', 'waiter')
-            user.userprofile.role = role
-            user.userprofile.save()
+            profile.role = role
+            profile.save()
 
             messages.success(request, 'Xodim tahrirlandi!')
             return redirect('admin_users')
@@ -482,12 +499,12 @@ def admin_reports(request):
     today_orders = Order.objects.filter(
         status='completed',
         created_at__date=today
-    )
-    today_total = today_orders.aggregate(total=Sum('items__price_at_time'))['total'] or 0
+    ).prefetch_related('items')
+    today_total = sum(order.total for order in today_orders)
     today_count = today_orders.count()
 
-    all_orders = Order.objects.filter(status='completed')
-    all_total = all_orders.aggregate(total=Sum('items__price_at_time'))['total'] or 0
+    all_orders = Order.objects.filter(status='completed').prefetch_related('items')
+    all_total = sum(order.total for order in all_orders)
     all_count = all_orders.count()
 
     tax_rate = get_tax_rate()

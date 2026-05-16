@@ -2,14 +2,16 @@
 
 from pathlib import Path
 import os
+import sys
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-restoran-pos-system-secret-key'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-restoran-pos-system-secret-key')
 
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('1', 'true', 'yes', 'on')
+TESTING = 'test' in sys.argv
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 
 INSTALLED_APPS = [
@@ -92,7 +94,18 @@ STATICFILES_DIRS = [BASE_DIR / 'pos/static']
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': (
+            'django.contrib.staticfiles.storage.StaticFilesStorage'
+            if DEBUG or TESTING
+            else 'whitenoise.storage.CompressedStaticFilesStorage'
+        ),
+    },
+}
 
 
 # ===================== DEFAULT =====================

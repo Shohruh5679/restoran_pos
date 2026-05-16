@@ -15,7 +15,11 @@
         <form method="post">
             {% csrf_token %}
             <button type="submit" class="login-btn" style="background:#ff4757;">Ha, tozalash</button>
+            {% if is_admin %}
+            <a href="{% url 'admin_orders' %}" class="login-btn" style="display:block;text-align:center;text-decoration:none;margin-top:10px;background:#533483;">Bekor qilish</a>
+            {% else %}
             <a href="{% url 'table_orders' order.table.id %}" class="login-btn" style="display:block;text-align:center;text-decoration:none;margin-top:10px;background:#533483;">Bekor qilish</a>
+            {% endif %}
         </form>
     </div>
 </div>
