@@ -1,1 +1,1 @@
-web: python manage.py migrate --noinput && gunicorn restoran.wsgi --log-file -
+web: python manage.py migrate --noinput && python manage.py seed_default_data --reset-passwords && gunicorn restoran.wsgi --log-file -

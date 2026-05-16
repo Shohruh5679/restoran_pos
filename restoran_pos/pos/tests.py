@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 
@@ -107,3 +108,20 @@ class PosViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['today_total'], 33000)
         self.assertEqual(response.context['all_total'], 33000)
+
+
+class SeedDefaultDataTests(TestCase):
+    def test_seed_default_data_creates_documented_logins(self):
+        call_command('seed_default_data', reset_passwords=True)
+
+        admin = User.objects.get(username='admin')
+        waiter1 = User.objects.get(username='waiter1')
+        waiter2 = User.objects.get(username='waiter2')
+
+        self.assertTrue(admin.check_password('admin123'))
+        self.assertTrue(waiter1.check_password('1234'))
+        self.assertTrue(waiter2.check_password('1234'))
+        self.assertEqual(admin.userprofile.role, 'admin')
+        self.assertEqual(waiter1.userprofile.role, 'waiter')
+        self.assertEqual(Table.objects.count(), 20)
+        self.assertTrue(Settings.objects.filter(key='tax_rate').exists())
