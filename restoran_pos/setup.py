@@ -83,14 +83,14 @@ def create_default_users():
 
     # Admin user
     admin_user, created = User.objects.get_or_create(
-        username='admin',
-        defaults={'first_name': 'Admin', 'is_staff': True, 'is_superuser': True}
+        username='choy',
+        defaults={'first_name': 'Choy Admin', 'is_staff': True, 'is_superuser': True}
     )
     if created:
-        admin_user.set_password('admin123')
+        admin_user.set_password('123')
         admin_user.save()
         UserProfile.objects.get_or_create(user=admin_user, defaults={'role': 'admin'})
-        print("Created admin user (admin/admin123)")
+        print("Created admin user (choy/123)")
 
     # Waiter users
     waiters = [
@@ -125,6 +125,6 @@ if __name__ == '__main__':
     print("Setup complete!")
     print("=" * 50)
     print("\nDefault logins:")
-    print("  Admin:    admin / admin123")
+    print("  Admin:    choy / 123")
     print("  Waiter 1: waiter1 / 1234")
     print("  Waiter 2: waiter2 / 1234")

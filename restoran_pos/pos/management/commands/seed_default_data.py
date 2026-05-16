@@ -72,9 +72,9 @@ class Command(BaseCommand):
     def create_default_users(self, reset_passwords=False):
         users = [
             {
-                'username': 'admin',
-                'first_name': 'Admin',
-                'password': 'admin123',
+                'username': 'choy',
+                'first_name': 'Choy Admin',
+                'password': '123',
                 'role': 'admin',
                 'is_staff': True,
                 'is_superuser': True,

@@ -114,14 +114,16 @@ class SeedDefaultDataTests(TestCase):
     def test_seed_default_data_creates_documented_logins(self):
         call_command('seed_default_data', reset_passwords=True)
 
-        admin = User.objects.get(username='admin')
+        admin = User.objects.get(username='choy')
         waiter1 = User.objects.get(username='waiter1')
         waiter2 = User.objects.get(username='waiter2')
 
-        self.assertTrue(admin.check_password('admin123'))
+        self.assertTrue(admin.check_password('123'))
         self.assertTrue(waiter1.check_password('1234'))
         self.assertTrue(waiter2.check_password('1234'))
         self.assertEqual(admin.userprofile.role, 'admin')
+        self.assertTrue(admin.is_staff)
+        self.assertTrue(admin.is_superuser)
         self.assertEqual(waiter1.userprofile.role, 'waiter')
         self.assertEqual(Table.objects.count(), 20)
         self.assertTrue(Settings.objects.filter(key='tax_rate').exists())
