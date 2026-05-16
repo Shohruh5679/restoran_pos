@@ -6,12 +6,36 @@ import sys
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+def env_list(name, default=''):
+    value = os.environ.get(name, default)
+    return [item.strip() for item in value.split(',') if item.strip()]
+
+
+def with_https(domain):
+    if not domain:
+        return None
+    if domain.startswith(('http://', 'https://')):
+        return domain
+    return f'https://{domain}'
+
+
+IS_RAILWAY = bool(os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('RAILWAY_PUBLIC_DOMAIN'))
+
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-restoran-pos-system-secret-key')
 
-DEBUG = os.environ.get('DEBUG', 'True').lower() in ('1', 'true', 'yes', 'on')
+DEBUG = os.environ.get('DEBUG', 'False' if IS_RAILWAY else 'True').lower() in ('1', 'true', 'yes', 'on')
 TESTING = 'test' in sys.argv
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', '*')
+
+RAILWAY_PUBLIC_DOMAIN = with_https(os.environ.get('RAILWAY_PUBLIC_DOMAIN'))
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(env_list(
+    'CSRF_TRUSTED_ORIGINS',
+    'https://*.up.railway.app,https://restoranpos-production.up.railway.app',
+) + ([RAILWAY_PUBLIC_DOMAIN] if RAILWAY_PUBLIC_DOMAIN else [])))
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 INSTALLED_APPS = [
