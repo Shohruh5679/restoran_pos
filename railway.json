@@ -5,7 +5,7 @@
     "buildCommand": "python restoran_pos/manage.py collectstatic --noinput"
   },
   "deploy": {
-    "startCommand": "gunicorn --chdir restoran_pos restoran.wsgi --log-file -",
+    "startCommand": "python restoran_pos/manage.py migrate --noinput && gunicorn --chdir restoran_pos restoran.wsgi --log-file -",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }

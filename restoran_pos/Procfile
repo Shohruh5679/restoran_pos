@@ -1,1 +1,1 @@
-web: gunicorn restoran.wsgi
+web: python manage.py migrate --noinput && gunicorn restoran.wsgi --log-file -
