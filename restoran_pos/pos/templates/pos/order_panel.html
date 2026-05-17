@@ -6,7 +6,7 @@
 <div class="order-panel active">
     <div class="order-header">
         <h3>Stol #{{ table.number }}</h3>
-        <a href="{% url 'waiter_dashboard' %}" class="back-btn">← Orqaga</a>
+        <a href="{% url 'waiter_dashboard' %}" class="back-btn">Orqaga</a>
     </div>
 
     <div class="menu-categories">
@@ -18,12 +18,17 @@
 
     <div class="menu-items">
         {% for item in menu_items %}
-        <div class="menu-item" onclick="addItem({{ item.id }})">
+        <div class="menu-item {% if item.is_weight_based %}weight-item{% endif %}" onclick="selectMenuItem({{ item.id }}, '{{ item.weight_type }}', '{{ item.name|escapejs }}', {{ item.unit_price|default:0 }}, '{{ item.min_weight|stringformat:".2f" }}', '{{ item.stock_kg|stringformat:".2f" }}')">
             <div class="item-info">
                 <span class="item-name">{{ item.name }}</span>
+                {% if item.is_weight_based %}
+                <span class="item-price">{{ item.price_per_kg|floatformat:0 }} so'm/kg</span>
+                <span class="item-meta">Min: {{ item.min_weight|floatformat:"2" }} kg · Sklad: {{ item.stock_kg|floatformat:"2" }} kg</span>
+                {% else %}
                 <span class="item-price">{{ item.price|floatformat:0 }} so'm</span>
+                {% endif %}
             </div>
-            <button class="add-btn" onclick="event.stopPropagation(); addItem({{ item.id }})">+</button>
+            <button class="add-btn" onclick="event.stopPropagation(); selectMenuItem({{ item.id }}, '{{ item.weight_type }}', '{{ item.name|escapejs }}', {{ item.unit_price|default:0 }}, '{{ item.min_weight|stringformat:".2f" }}', '{{ item.stock_kg|stringformat:".2f" }}')">+</button>
         </div>
         {% empty %}
         <div class="empty-state"><p>Bu kategoriyada taom yo'q</p></div>
@@ -31,19 +36,30 @@
     </div>
 
     <div class="order-list-section">
-        <h4>📋 Zakazlar</h4>
+        <h4>Zakazlar</h4>
         <div id="orderItemsList">
             {% if order %}
                 {% for item in order.items.all %}
                 <div class="order-item" data-item-id="{{ item.id }}">
                     <div>
+                        {% if item.is_weight_item %}
+                        <span class="qty">{{ item.weight_kg|floatformat:"2" }} kg</span>
+                        {{ item.menu_item.name }}
+                        <div class="order-line-sub">{{ item.price_at_time|floatformat:0 }} so'm/kg</div>
+                        {% else %}
                         <span class="qty">{{ item.quantity }}x</span>
                         {{ item.menu_item.name }}
+                        <div class="order-line-sub">{{ item.price_at_time|floatformat:0 }} so'm/dona</div>
+                        {% endif %}
                     </div>
                     <div class="item-controls">
                         <span class="item-total" data-item-total>{{ item.total|floatformat:0 }} so'm</span>
-                        <button class="qty-btn" onclick="changeQty({{ item.id }}, -1)">−</button>
+                        {% if item.is_weight_item %}
+                        <button class="qty-btn" onclick="changeQty({{ item.id }}, -1)">x</button>
+                        {% else %}
+                        <button class="qty-btn" onclick="changeQty({{ item.id }}, -1)">-</button>
                         <button class="qty-btn" onclick="changeQty({{ item.id }}, 1)">+</button>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -68,15 +84,45 @@
         </div>
         <div class="action-btns">
             {% if order %}
-            <a href="{% url 'save_order' order.id %}" class="btn-save">💾 Saqlash</a>
-            <a href="{% url 'print_check' order.id %}" class="btn-print" target="_blank">🧾 Chek</a>
-            <a href="{% url 'clear_order' order.id %}" class="btn-clear">🗑️</a>
+            <a href="{% url 'save_order' order.id %}" class="btn-save">Saqlash</a>
+            <a href="{% url 'print_check' order.id %}" class="btn-print" target="_blank">Chek</a>
+            <a href="{% url 'clear_order' order.id %}" class="btn-clear">Tozalash</a>
             {% else %}
-            <button class="btn-save" disabled>💾 Saqlash</button>
-            <button class="btn-print" disabled>🧾 Chek</button>
-            <button class="btn-clear" disabled>🗑️</button>
+            <button class="btn-save" disabled>Saqlash</button>
+            <button class="btn-print" disabled>Chek</button>
+            <button class="btn-clear" disabled>Tozalash</button>
             {% endif %}
         </div>
+    </div>
+</div>
+
+<div class="weight-modal" id="weightModal" aria-hidden="true">
+    <div class="weight-dialog">
+        <div class="weight-dialog-header">
+            <div>
+                <h4 id="weightItemName">Kg mahsulot</h4>
+                <p id="weightItemPrice">0 so'm/kg</p>
+            </div>
+            <button type="button" class="weight-close" onclick="closeWeightModal()">x</button>
+        </div>
+
+        <div class="quick-weights" id="quickWeights"></div>
+
+        <div class="form-group">
+            <label>Boshqa ogirlik (kg)</label>
+            <input type="number" id="weightInput" class="form-control" step="0.01" min="0.01" inputmode="decimal" placeholder="Masalan: 1.25">
+        </div>
+
+        <button type="button" class="scale-btn" onclick="readScaleWeight()">Tarozidan olish</button>
+
+        <div class="weight-summary">
+            <div><span>Hisob:</span><strong id="weightCalcText">0 kg x 0 so'm/kg</strong></div>
+            <div><span>Jami:</span><strong id="weightTotalText">0 so'm</strong></div>
+        </div>
+
+        <p class="weight-error" id="weightError"></p>
+
+        <button type="button" class="admin-btn" onclick="submitWeightItem()">Zakazga qo'shish</button>
     </div>
 </div>
 
@@ -84,7 +130,12 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ kg_default_weights|json_script:"kg-default-weights" }}
 <script>
+const kgDefaultWeights = JSON.parse(document.getElementById('kg-default-weights').textContent);
+const kgRounding = Number('{{ kg_rounding|default_if_none:0 }}');
+let selectedKgItem = null;
+
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -107,6 +158,136 @@ function showToast(msg) {
     setTimeout(() => toast.classList.remove('show'), 2000);
 }
 
+function formatMoney(value) {
+    return new Intl.NumberFormat('uz-UZ').format(Math.round(Number(value) || 0)) + " so'm";
+}
+
+function roundKgTotal(value) {
+    if (!kgRounding) {
+        return Math.round(value);
+    }
+    return Math.round(value / kgRounding) * kgRounding;
+}
+
+function selectMenuItem(itemId, weightType, name, unitPrice, minWeight, stockKg) {
+    if (weightType === 'kg') {
+        openWeightModal({
+            id: itemId,
+            name: name,
+            unitPrice: Number(unitPrice) || 0,
+            minWeight: Number(minWeight) || 0.1,
+            stockKg: Number(stockKg) || 0
+        });
+        return;
+    }
+    addItem(itemId);
+}
+
+function openWeightModal(item) {
+    selectedKgItem = item;
+    document.getElementById('weightItemName').textContent = item.name;
+    document.getElementById('weightItemPrice').textContent = formatMoney(item.unitPrice) + '/kg';
+    document.getElementById('weightInput').value = item.minWeight.toFixed(2);
+    document.getElementById('weightError').textContent = '';
+
+    const quickWeights = document.getElementById('quickWeights');
+    quickWeights.innerHTML = '';
+    kgDefaultWeights.forEach(weight => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = weight + ' kg';
+        btn.onclick = () => {
+            document.getElementById('weightInput').value = Number(weight).toFixed(2);
+            updateWeightTotal();
+        };
+        quickWeights.appendChild(btn);
+    });
+
+    document.getElementById('weightModal').classList.add('show');
+    document.getElementById('weightModal').setAttribute('aria-hidden', 'false');
+    updateWeightTotal();
+}
+
+function closeWeightModal() {
+    selectedKgItem = null;
+    document.getElementById('weightModal').classList.remove('show');
+    document.getElementById('weightModal').setAttribute('aria-hidden', 'true');
+}
+
+function updateWeightTotal() {
+    if (!selectedKgItem) return false;
+
+    const input = document.getElementById('weightInput');
+    const error = document.getElementById('weightError');
+    const weight = Number(String(input.value).replace(',', '.'));
+    const total = roundKgTotal(weight * selectedKgItem.unitPrice);
+
+    document.getElementById('weightCalcText').textContent =
+        (Number.isFinite(weight) ? weight.toFixed(2) : '0.00') + ' kg x ' + formatMoney(selectedKgItem.unitPrice) + '/kg';
+    document.getElementById('weightTotalText').textContent = formatMoney(total);
+
+    if (!Number.isFinite(weight) || weight <= 0) {
+        error.textContent = 'Ogirlik 0 dan katta bolishi kerak.';
+        return false;
+    }
+    if (weight < selectedKgItem.minWeight) {
+        error.textContent = 'Eng kam ogirlik: ' + selectedKgItem.minWeight.toFixed(2) + ' kg.';
+        return false;
+    }
+    if (weight > selectedKgItem.stockKg) {
+        error.textContent = 'Skladda faqat ' + selectedKgItem.stockKg.toFixed(2) + ' kg qoldi.';
+        return false;
+    }
+
+    error.textContent = '';
+    return true;
+}
+
+document.getElementById('weightInput').addEventListener('input', updateWeightTotal);
+document.getElementById('weightModal').addEventListener('click', function (event) {
+    if (event.target === this) {
+        closeWeightModal();
+    }
+});
+
+function submitWeightItem() {
+    if (!selectedKgItem || !updateWeightTotal()) return;
+
+    const weight = Number(String(document.getElementById('weightInput').value).replace(',', '.'));
+    fetch(`/table/{{ table.id }}/add-item/${selectedKgItem.id}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `weight_kg=${encodeURIComponent(weight.toFixed(2))}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.item_name + " qo'shildi");
+            closeWeightModal();
+            location.reload();
+            return;
+        }
+        showToast(data.error || "Xatolik yuz berdi");
+    });
+}
+
+function readScaleWeight() {
+    fetch("{% url 'scale_weight' %}")
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('weightInput').value = Number(data.weight_kg).toFixed(2);
+                updateWeightTotal();
+                showToast('Tarozi ogirligi olindi');
+                return;
+            }
+            showToast(data.error || 'Tarozi API sozlanmagan');
+        });
+}
+
 function addItem(itemId) {
     fetch(`/table/{{ table.id }}/add-item/${itemId}/`, {
         method: 'POST',
@@ -120,7 +301,9 @@ function addItem(itemId) {
         if (data.success) {
             showToast(data.item_name + " qo'shildi");
             location.reload();
+            return;
         }
+        showToast(data.error || "Xatolik yuz berdi");
     });
 }
 
@@ -137,7 +320,9 @@ function changeQty(itemId, delta) {
     .then(data => {
         if (data.success) {
             location.reload();
+            return;
         }
+        showToast(data.error || "Xatolik yuz berdi");
     });
 }
 </script>

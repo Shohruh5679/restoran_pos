@@ -40,6 +40,36 @@
             <p style="color:#aaa;font-size:13px;margin-top:5px;">Jami zakazlar: {{ all_count }}</p>
         </div>
 
+        <div class="admin-card">
+            <h4>Kg mahsulotlar savdosi</h4>
+            <div style="font-size:28px;color:#4ecca3;font-weight:bold;">{{ kg_sold_total|floatformat:"2" }} kg</div>
+            <p style="color:#aaa;font-size:13px;margin-top:5px;">Yakunlangan zakazlar bo'yicha jami sotilgan kg</p>
+        </div>
+
+        <div class="admin-card">
+            <h4>TOP-10 kg mahsulotlar</h4>
+            {% for item in kg_report_rows %}
+            <div class="report-row">
+                <span>{{ forloop.counter }}. {{ item.name }}</span>
+                <strong>{{ item.sold_kg|floatformat:"2" }} kg · {{ item.sales_total|floatformat:0 }} so'm</strong>
+            </div>
+            {% empty %}
+            <p style="color:#aaa;font-size:13px;">Hali kg mahsulot sotilmagan.</p>
+            {% endfor %}
+        </div>
+
+        <div class="admin-card">
+            <h4>Sklad qoldigi (kg)</h4>
+            {% for item in kg_items %}
+            <div class="report-row">
+                <span>{{ item.name }}</span>
+                <strong>{{ item.stock_kg|floatformat:"2" }} kg</strong>
+            </div>
+            {% empty %}
+            <p style="color:#aaa;font-size:13px;">Kg mahsulotlar hali qo'shilmagan.</p>
+            {% endfor %}
+        </div>
+
         <form method="post" action="{% url 'clear_history' %}" style="margin-top:10px;">
             {% csrf_token %}
             <button type="submit" class="admin-btn danger" onclick="return confirm('Barcha tarixni o\'chirishni xohlaysizmi?')">Tarixni tozalash</button>

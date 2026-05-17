@@ -30,7 +30,12 @@
         <div class="swipe-item">
             <div class="swipe-content">
                 <div style="font-weight:bold;">{{ item.name }}</div>
+                {% if item.is_weight_based %}
+                <div style="color:#4ecca3;font-size:13px;">{{ item.price_per_kg|floatformat:0 }} so'm/kg · {{ item.category.name }}</div>
+                <div style="color:#aaa;font-size:12px;">Min: {{ item.min_weight|floatformat:"2" }} kg · Sklad: {{ item.stock_kg|floatformat:"2" }} kg</div>
+                {% else %}
                 <div style="color:#4ecca3;font-size:13px;">{{ item.price|floatformat:0 }} so'm · {{ item.category.name }}</div>
+                {% endif %}
             </div>
             <div class="swipe-actions">
                 <a href="{% url 'menu_edit' item.id %}" class="swipe-edit">✏️</a>
