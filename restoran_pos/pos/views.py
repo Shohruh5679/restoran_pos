@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -113,6 +115,8 @@ def table_orders(request, table_id):
         menu_items = menu_items.filter(category__slug=category_filter)
 
     tax_rate = get_tax_rate()
+    kg_default_weights = [0.1, 0.25, 0.5, 1, 2, 5]
+    kg_rounding = 0
 
     return render(request, 'pos/order_panel.html', {
         'table': table,
@@ -121,6 +125,8 @@ def table_orders(request, table_id):
         'menu_items': menu_items,
         'current_category': category_filter,
         'tax_rate': tax_rate,
+        'kg_default_weights': kg_default_weights,
+        'kg_rounding': kg_rounding,
     })
 
 
@@ -135,6 +141,7 @@ def add_item(request, table_id, item_id):
 
     table = get_object_or_404(Table, id=table_id)
     menu_item = get_object_or_404(MenuItem, id=item_id)
+    weight_kg = request.POST.get('weight_kg')
 
     order, created = Order.objects.get_or_create(
         table=table,
@@ -142,15 +149,42 @@ def add_item(request, table_id, item_id):
         defaults={'waiter': request.user}
     )
 
-    order_item, created = OrderItem.objects.get_or_create(
-        order=order,
-        menu_item=menu_item,
-        defaults={'price_at_time': menu_item.price}
-    )
+    if menu_item.is_weight_based and weight_kg:
+        try:
+            weight_value = Decimal(weight_kg)
+        except Exception:
+            return JsonResponse({'success': False, 'error': 'Og\'irlik noto\'g\'ri kiritildi'})
 
-    if not created:
-        order_item.quantity += 1
-        order_item.save()
+        if weight_value <= 0:
+            return JsonResponse({'success': False, 'error': 'Og\'irlik 0 dan katta bo\'lishi kerak'})
+        if weight_value < menu_item.min_weight:
+            return JsonResponse({'success': False, 'error': f'Eng kam og\'irlik {menu_item.min_weight} kg'})
+        if weight_value > menu_item.stock_kg:
+            return JsonResponse({'success': False, 'error': 'Skladda yetarli og\'irlik yo\'q'})
+
+        order_item, created = OrderItem.objects.get_or_create(
+            order=order,
+            menu_item=menu_item,
+            defaults={
+                'price_at_time': menu_item.price_per_kg or menu_item.price,
+                'weight_kg': weight_value,
+            }
+        )
+        if not created:
+            order_item.weight_kg += weight_value
+            order_item.save()
+
+        menu_item.stock_kg = max(menu_item.stock_kg - weight_value, 0)
+        menu_item.save()
+    else:
+        order_item, created = OrderItem.objects.get_or_create(
+            order=order,
+            menu_item=menu_item,
+            defaults={'price_at_time': menu_item.price}
+        )
+        if not created:
+            order_item.quantity += 1
+            order_item.save()
 
     return JsonResponse({
         'success': True,
@@ -172,11 +206,21 @@ def change_qty(request, item_id):
     order = order_item.order
     delta = int(request.POST.get('delta', 0))
 
-    order_item.quantity += delta
-    if order_item.quantity <= 0:
-        order_item.delete()
+    if order_item.is_weight_item:
+        if delta < 0:
+            order_item.delete()
+        else:
+            return JsonResponse({
+                'success': True,
+                'order_total': order.total,
+                'item_total': order_item.total,
+            })
     else:
-        order_item.save()
+        order_item.quantity += delta
+        if order_item.quantity <= 0:
+            order_item.delete()
+        else:
+            order_item.save()
 
     if order.items.count() == 0:
         order.delete()
@@ -185,7 +229,7 @@ def change_qty(request, item_id):
     return JsonResponse({
         'success': True,
         'order_total': order.total,
-        'item_total': order_item.total if order_item.quantity > 0 else 0,
+        'item_total': order_item.total if hasattr(order_item, 'total') else 0,
     })
 
 
@@ -243,6 +287,17 @@ def print_check(request, order_id):
         'order': order,
         'tax_rate': tax_rate,
     })
+
+
+@login_required
+def scale_weight(request):
+    try:
+        if request.user.userprofile.role != 'waiter':
+            return JsonResponse({'success': False, 'error': 'Ruxsat yo\'q'})
+    except UserProfile.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Profil topilmadi'})
+
+    return JsonResponse({'success': False, 'error': 'Taroza tizimi hozircha yoqilmagan'})
 
 
 # ============== ADMIN VIEWS ==============
@@ -506,6 +561,12 @@ def admin_reports(request):
     all_orders = Order.objects.filter(status='completed').prefetch_related('items')
     all_total = sum(order.total for order in all_orders)
     all_count = all_orders.count()
+    kg_sold_total = sum(
+        float(item.weight_kg)
+        for order in all_orders
+        for item in order.items.all()
+        if item.is_weight_item
+    )
 
     tax_rate = get_tax_rate()
 
@@ -515,6 +576,7 @@ def admin_reports(request):
         'all_total': all_total,
         'all_count': all_count,
         'tax_rate': tax_rate,
+        'kg_sold_total': kg_sold_total,
     })
 
 

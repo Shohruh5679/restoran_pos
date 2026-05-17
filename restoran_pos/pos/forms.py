@@ -28,11 +28,15 @@ class LoginForm(AuthenticationForm):
 class MenuItemForm(forms.ModelForm):
     class Meta:
         model = MenuItem
-        fields = ['name', 'price', 'category', 'is_active']
+        fields = ['name', 'price', 'category', 'weight_type', 'price_per_kg', 'min_weight', 'stock_kg', 'is_active']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Taom nomi'}),
             'price': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '25000'}),
             'category': forms.Select(attrs={'class': 'form-control'}),
+            'weight_type': forms.Select(attrs={'class': 'form-control'}),
+            'price_per_kg': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '90000'}),
+            'min_weight': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': '0.10'}),
+            'stock_kg': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': '0.00'}),
         }
 
 

@@ -39,6 +39,22 @@
                     {{ form.category }}
                 </div>
                 <div class="form-group">
+                    <label>O‘lchov turi</label>
+                    {{ form.weight_type }}
+                </div>
+                <div class="form-group">
+                    <label>Narxi (so'm/kg)</label>
+                    {{ form.price_per_kg }}
+                </div>
+                <div class="form-group">
+                    <label>Minimal og‘irlik (kg)</label>
+                    {{ form.min_weight }}
+                </div>
+                <div class="form-group">
+                    <label>Skladdagi og‘irlik (kg)</label>
+                    {{ form.stock_kg }}
+                </div>
+                <div class="form-group">
                     <label>
                         {{ form.is_active }} Faol
                     </label>

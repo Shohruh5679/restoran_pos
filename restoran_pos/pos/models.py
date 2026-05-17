@@ -28,13 +28,30 @@ class Category(models.Model):
 
 
 class MenuItem(models.Model):
+    WEIGHT_TYPE_CHOICES = [
+        ('unit', 'Dona'),
+        ('kg', 'Kg'),
+    ]
+
     name = models.CharField(max_length=100, verbose_name='Nomi')
     price = models.PositiveIntegerField(verbose_name='Narxi')
     category = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name='Kategoriya')
     is_active = models.BooleanField(default=True, verbose_name='Faol')
+    weight_type = models.CharField(max_length=10, choices=WEIGHT_TYPE_CHOICES, default='unit', verbose_name='O‘lchov turi')
+    price_per_kg = models.PositiveIntegerField(null=True, blank=True, verbose_name='Narxi/kg')
+    min_weight = models.DecimalField(max_digits=6, decimal_places=2, default=0.1, verbose_name='Minimal og‘irlik (kg)')
+    stock_kg = models.DecimalField(max_digits=8, decimal_places=2, default=0, verbose_name='Skladdagi kg')
 
     def __str__(self):
         return f"{self.name} - {self.price} so'm"
+
+    @property
+    def is_weight_based(self):
+        return self.weight_type == 'kg'
+
+    @property
+    def unit_price(self):
+        return self.price_per_kg if self.is_weight_based else self.price
 
     class Meta:
         ordering = ['category', 'name']
@@ -85,13 +102,22 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', verbose_name='Zakaz')
     menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE, verbose_name='Taom')
     quantity = models.PositiveIntegerField(default=1, verbose_name='Miqdori')
+    weight_kg = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name='Og‘irlik (kg)')
     price_at_time = models.PositiveIntegerField(verbose_name='Narxi (zakaz vaqtida)')
 
     def __str__(self):
+        if self.is_weight_item:
+            return f"{self.menu_item.name} - {self.weight_kg} kg"
         return f"{self.menu_item.name} x{self.quantity}"
 
     @property
+    def is_weight_item(self):
+        return self.menu_item.weight_type == 'kg'
+
+    @property
     def total(self):
+        if self.is_weight_item:
+            return round(self.price_at_time * float(self.weight_kg))
         return self.price_at_time * self.quantity
 
     class Meta:

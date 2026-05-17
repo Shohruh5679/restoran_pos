@@ -10,6 +10,7 @@ urlpatterns = [
     path('', views.waiter_dashboard, name='waiter_dashboard'),
     path('table/<int:table_id>/', views.table_orders, name='table_orders'),
     path('table/<int:table_id>/add-item/<int:item_id>/', views.add_item, name='add_item'),
+    path('scale-weight/', views.scale_weight, name='scale_weight'),
     path('order-item/<int:item_id>/change-qty/', views.change_qty, name='change_qty'),
     path('order/<int:order_id>/save/', views.save_order, name='save_order'),
     path('order/<int:order_id>/clear/', views.clear_order, name='clear_order'),
