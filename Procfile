@@ -1,1 +1,1 @@
-web: cd restoran_pos && python manage.py migrate --noinput && python manage.py seed_default_data --reset-passwords && gunicorn restoran.wsgi --bind 0.0.0.0:$PORT --log-file -
+web: cd restoran_pos && python manage.py migrate --noinput && python manage.py seed_default_data --reset-passwords && gunicorn --workers 2 --bind 0.0.0.0:$PORT --timeout 60 --access-logfile - wsgi_startup:application

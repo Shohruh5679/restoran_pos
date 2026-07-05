@@ -7,9 +7,10 @@ services:
       pip install -r requirements.txt
       python restoran_pos/manage.py collectstatic --noinput
     startCommand: |
-      python restoran_pos/manage.py migrate --noinput
-      python restoran_pos/manage.py seed_default_data --reset-passwords
-      gunicorn --chdir restoran_pos restoran.wsgi --log-file - --bind 0.0.0.0:$PORT
+      cd restoran_pos
+      python manage.py migrate --noinput
+      python manage.py seed_default_data --reset-passwords
+      gunicorn --workers 2 --bind 0.0.0.0:$PORT --timeout 60 --access-logfile - wsgi_startup:application
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
