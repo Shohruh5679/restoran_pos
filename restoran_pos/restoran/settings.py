@@ -22,19 +22,22 @@ def with_https(domain):
 
 
 IS_RAILWAY = bool(os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('RAILWAY_PUBLIC_DOMAIN'))
+IS_RENDER = bool(os.environ.get('RENDER') or os.environ.get('RENDER_EXTERNAL_URL'))
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-restoran-pos-system-secret-key')
 
-DEBUG = os.environ.get('DEBUG', 'False' if IS_RAILWAY else 'True').lower() in ('1', 'true', 'yes', 'on')
+DEBUG = os.environ.get('DEBUG', 'False' if (IS_RAILWAY or IS_RENDER) else 'True').lower() in ('1', 'true', 'yes', 'on')
 TESTING = 'test' in sys.argv
 
 ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', '*')
 
 RAILWAY_PUBLIC_DOMAIN = with_https(os.environ.get('RAILWAY_PUBLIC_DOMAIN'))
+RENDER_EXTERNAL_URL = os.environ.get('RENDER_EXTERNAL_URL', '')
+
 CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(env_list(
     'CSRF_TRUSTED_ORIGINS',
-    'https://*.up.railway.app,https://restoranpos-production.up.railway.app',
-) + ([RAILWAY_PUBLIC_DOMAIN] if RAILWAY_PUBLIC_DOMAIN else [])))
+    'https://*.up.railway.app,https://restoranpos-production.up.railway.app,https://*.onrender.com',
+) + ([RAILWAY_PUBLIC_DOMAIN] if RAILWAY_PUBLIC_DOMAIN else []) + ([RENDER_EXTERNAL_URL] if RENDER_EXTERNAL_URL else [])))
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 

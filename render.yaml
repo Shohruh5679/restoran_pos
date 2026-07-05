@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: restoran-pos
+    env: python
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt
+      python restoran_pos/manage.py collectstatic --noinput
+    startCommand: |
+      python restoran_pos/manage.py migrate --noinput
+      python restoran_pos/manage.py seed_default_data --reset-passwords
+      gunicorn --chdir restoran_pos restoran.wsgi --log-file - --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DEBUG
+        value: "False"
