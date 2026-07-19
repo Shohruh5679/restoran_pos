@@ -30,4 +30,6 @@ urlpatterns = [
     path('admin-panel/users/delete/<int:user_id>/', views.user_delete, name='user_delete'),
     path('admin-panel/reports/', views.admin_reports, name='admin_reports'),
     path('admin-panel/clear-history/', views.clear_history, name='clear_history'),
+    path('admin-panel/saved-receipts/', views.saved_receipts, name='saved_receipts'),
+    path('admin-panel/receipt/<int:receipt_id>/', views.receipt_detail, name='receipt_detail'),
 ]

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Table, Category, MenuItem, Order, OrderItem, UserProfile, Settings
+from .models import Category, MenuItem, Order, OrderItem, SavedReceipt, Settings, Table, UserProfile
 
 
 @admin.register(Table)
@@ -45,3 +45,15 @@ class SettingsAdmin(admin.ModelAdmin):
     list_display = ['key', 'value', 'description']
     list_editable = ['value']
     search_fields = ['key', 'description']
+
+
+@admin.register(SavedReceipt)
+class SavedReceiptAdmin(admin.ModelAdmin):
+    list_display = ['id', 'table_number', 'created_at', 'expires_at']
+    list_filter = ['created_at', 'expires_at']
+    readonly_fields = ['receipt_data', 'created_at', 'expires_at']
+
+    def table_number(self, obj):
+        return obj.receipt_data.get('table_number', '-') if isinstance(obj.receipt_data, dict) else '-'
+
+    table_number.short_description = 'Stol'

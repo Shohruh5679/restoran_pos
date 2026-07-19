@@ -1,0 +1,110 @@
+{% extends 'pos/base.html' %}
+
+{% block title %}Chek Detali{% endblock %}
+
+{% block content %}
+<div class="admin-app" style="display:block;">
+    <div class="header">
+        <h1>⚙️ Chek Detali</h1>
+        <div class="user-info">
+            <span>Admin</span>
+            <span class="role-badge">Admin</span>
+            <a href="{% url 'logout' %}" class="logout-btn">Chiqish</a>
+        </div>
+    </div>
+
+    <div class="admin-content">
+        <div class="admin-card" style="width: 100%; max-width: 600px; margin: 0 auto;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="margin: 0; color: #4ecca3;">🧾 CHEK</h2>
+                <p style="color: #aaa; font-size: 12px; margin: 5px 0;">Stol #{{ receipt.receipt_data.table_number }}</p>
+                <p style="color: #aaa; font-size: 12px; margin: 0;">{{ receipt.created_at|date:"d.m.Y H:i" }}</p>
+            </div>
+
+            <div style="border-top: 2px solid #444; border-bottom: 2px solid #444; padding: 15px 0; margin: 15px 0;">
+                <!-- Taomlar ro'yxati -->
+                {% for item in receipt.receipt_data.items %}
+                <div style="margin-bottom: 12px; font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #ddd; flex: 1;">{{ item.name }}</span>
+                        <span style="color: #aaa; font-size: 12px; min-width: 60px; text-align: right;">
+                            {% if item.quantity %}
+                                x{{ item.quantity }}
+                            {% elif item.weight_kg %}
+                                {{ item.weight_kg }} kg
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 4px;">
+                        <span style="color: #aaa; font-size: 11px;">{{ item.price_at_time }} so'/birlik</span>
+                        <span style="color: #4ecca3; font-weight: bold;">{{ item.total }} so'm</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Hisoblash -->
+            <div style="padding: 15px 0; background-color: #2a2a2a; padding: 12px; border-radius: 4px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #aaa;">
+                    <span>Jami:</span>
+                    <span>{{ receipt.receipt_data.subtotal }} so'm</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #aaa;">
+                    <span>QQS ({{ tax_rate|default:'12' }}%):</span>
+                    <span>{{ receipt.receipt_data.tax }} so'm</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-top: 1px solid #444; padding-top: 8px; margin-top: 8px; color: #e94560; font-weight: bold; font-size: 16px;">
+                    <span>Umumiy:</span>
+                    <span>{{ receipt.receipt_data.total }} so'm</span>
+                </div>
+            </div>
+
+            <!-- Xizmatchi ma'lumoti -->
+            <div style="margin-top: 15px; text-align: center; color: #aaa; font-size: 12px;">
+                <p style="margin: 5px 0;">Xizmatchi: <strong style="color: #ddd;">{{ receipt.receipt_data.waiter }}</strong></p>
+                <p style="margin: 5px 0;">Zakazlar soni: <strong style="color: #ddd;">{{ receipt.receipt_data.items|length }}</strong></p>
+            </div>
+
+            <!-- Saqlangan ma'lumoti -->
+            <div style="margin-top: 20px; padding: 10px; background-color: #2a2a2a; border-radius: 4px; text-align: center; color: #aaa; font-size: 11px;">
+                <p style="margin: 0;">📌 Saqlangan: {{ receipt.created_at|date:"d.m.Y H:i" }}</p>
+                <p style="margin: 5px 0;">⏰ O'chish: {{ receipt.expires_at|date:"d.m.Y H:i" }}</p>
+            </div>
+
+            <!-- Tugmalar -->
+            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
+                <button onclick="window.print()" class="admin-btn" style="flex: 1; padding: 10px;">🖨️ Chop etish</button>
+                <a href="{% url 'saved_receipts' %}" class="admin-btn" style="flex: 1; padding: 10px; text-decoration: none; text-align: center;">← Ortga</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @media print {
+        .header, .admin-tabs, .admin-btn, a {
+            display: none;
+        }
+        .admin-app {
+            padding: 0;
+            background-color: white;
+            color: black;
+        }
+        .admin-card {
+            background-color: white;
+            color: black;
+            box-shadow: none;
+            border: 1px solid #ccc;
+        }
+        div[style*="color: #"] {
+            color: black !important;
+        }
+        div[style*="background-color: #2a2a2a"] {
+            background-color: #f5f5f5 !important;
+        }
+        div[style*="border"] {
+            border-color: #ccc !important;
+        }
+    }
+</style>
+{% endblock %}

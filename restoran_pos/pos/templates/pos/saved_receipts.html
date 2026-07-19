@@ -1,0 +1,109 @@
+{% extends 'pos/base.html' %}
+
+{% block title %}Admin - Saqlangan Cheklar{% endblock %}
+
+{% block content %}
+<div class="admin-app" style="display:block;">
+    <div class="header">
+        <h1>⚙️ Admin</h1>
+        <div class="user-info">
+            <span>Admin</span>
+            <span class="role-badge">Admin</span>
+            <a href="{% url 'logout' %}" class="logout-btn">Chiqish</a>
+        </div>
+    </div>
+
+    <div class="admin-tabs">
+        <a href="{% url 'admin_orders' %}">📋 Zakazlar</a>
+        <a href="{% url 'admin_menu' %}">🍽️ Menyu</a>
+        <a href="{% url 'admin_tables' %}">🪑 Stollar</a>
+        <a href="{% url 'admin_users' %}">👤 Xodimlar</a>
+        <a href="{% url 'admin_reports' %}">📊 Hisobot</a>
+        <a href="{% url 'saved_receipts' %}" class="active">📑 Saqlangan Cheklar</a>
+    </div>
+
+    <div class="admin-content">
+        <div class="admin-card" style="width: 100%; max-width: none;">
+            <h4>📑 3 Kunlik Saqlangan Cheklar</h4>
+            <p style="color:#aaa;font-size:12px;margin-bottom:15px;">
+                {% if receipts.count %}
+                    Jami: <strong>{{ receipts.count }}</strong> chek saqlangan (3 kun saqlanadi)
+                {% else %}
+                    Hali saqlangan chek yo'q
+                {% endif %}
+            </p>
+
+            {% if receipts %}
+                <table style="width: 100%; border-collapse: collapse; color: #ddd;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #444;">
+                            <th style="text-align: left; padding: 10px; background-color: #2a2a2a;">Tavsif</th>
+                            <th style="text-align: center; padding: 10px; background-color: #2a2a2a; width: 100px;">Summa</th>
+                            <th style="text-align: center; padding: 10px; background-color: #2a2a2a; width: 150px;">Saqlangan vaqti</th>
+                            <th style="text-align: center; padding: 10px; background-color: #2a2a2a; width: 150px;">O'chish vaqti</th>
+                            <th style="text-align: center; padding: 10px; background-color: #2a2a2a; width: 120px;">Harakatok</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for receipt in receipts %}
+                        <tr style="border-bottom: 1px solid #444;">
+                            <td style="padding: 12px; color: #4ecca3;">
+                                <strong>Stol #{{ receipt.receipt_data.table_number }}</strong>
+                                <br>
+                                <small style="color: #aaa;">{{ receipt.receipt_data.items|length }} ta taom</small>
+                            </td>
+                            <td style="padding: 12px; text-align: center; color: #e94560; font-weight: bold;">
+                                {{ receipt.receipt_data.total }} so'm
+                            </td>
+                            <td style="padding: 12px; text-align: center; font-size: 12px;">
+                                {{ receipt.created_at|date:"d.m.Y H:i" }}
+                            </td>
+                            <td style="padding: 12px; text-align: center; font-size: 12px;">
+                                {% now "Y-m-d H:i" as now %}
+                                {% if receipt.expires_at.date == now|date:"Y-m-d" %}
+                                    <span style="color: #ff6b6b; font-weight: bold;">Bugun</span>
+                                {% else %}
+                                    {{ receipt.expires_at|date:"d.m.Y" }}
+                                    <span style="color: #aaa;">({{ receipt.expires_at|timeuntil }})</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 12px; text-align: center;">
+                                <a href="{% url 'receipt_detail' receipt.id %}" class="admin-btn small" style="padding: 5px 10px; font-size: 12px; text-decoration: none; color: #ddd; background-color: #533483;">Ko'rish</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div style="text-align: center; color: #aaa; padding: 40px 20px;">
+                    <p style="font-size: 18px;">📑 Saqlangan cheklar yo'q</p>
+                    <p style="font-size: 12px; margin-top: 10px;">Zakaz saqlangandan so'ng chek bu yerda paydo bo'ladi</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div style="margin-top: 20px; text-align: center; color: #aaa; font-size: 12px;">
+            <p>💡 Cheklar avtomatik 3 kundan so'ng o'chiriladi</p>
+            <p style="margin-top: 10px;">
+                <a href="{% url 'admin_reports' %}" style="color: #4ecca3; text-decoration: none;">← Hisobotga qaytish</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .admin-btn.small {
+        padding: 6px 12px;
+        font-size: 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .admin-btn.small:hover {
+        background-color: #4ecca3;
+        color: #000;
+    }
+</style>
+{% endblock %}

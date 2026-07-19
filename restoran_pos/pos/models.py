@@ -1,5 +1,8 @@
-from django.db import models
+from datetime import timedelta
+
 from django.contrib.auth.models import User
+from django.db import models
+from django.utils import timezone
 
 
 class Table(models.Model):
@@ -155,3 +158,37 @@ class Settings(models.Model):
     class Meta:
         verbose_name = 'Sozlama'
         verbose_name_plural = 'Sozlamalar'
+
+
+class SavedReceipt(models.Model):
+    """3 kunlik saqlangan cheklar"""
+    RETENTION_DAYS = 3
+
+    order = models.OneToOneField(
+        Order,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='saved_receipt',
+        verbose_name='Zakaz',
+    )
+    receipt_data = models.JSONField(verbose_name='Chekni ma\'lumoti')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Saqlangan vaqti')
+    expires_at = models.DateTimeField(db_index=True, verbose_name='O\'chish vaqti')
+
+    @classmethod
+    def expiry_time(cls, from_time=None):
+        return (from_time or timezone.now()) + timedelta(days=cls.RETENTION_DAYS)
+
+    @classmethod
+    def delete_expired(cls, now=None):
+        return cls.objects.filter(expires_at__lte=now or timezone.now()).delete()
+
+    def __str__(self):
+        table_number = self.receipt_data.get('table_number', '?') if isinstance(self.receipt_data, dict) else '?'
+        return f"Chek - Stol #{table_number} - {self.created_at.strftime('%d.%m.%Y %H:%M')}"
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Saqlangan chek'
+        verbose_name_plural = 'Saqlangan cheklar'

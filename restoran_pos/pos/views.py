@@ -1,3 +1,4 @@
+from datetime import timedelta
 from decimal import Decimal
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -5,11 +6,12 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
+from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 
-from .models import Table, Category, MenuItem, Order, OrderItem, UserProfile, Settings
+from .models import Table, Category, MenuItem, Order, OrderItem, UserProfile, Settings, SavedReceipt
 from .forms import LoginForm, MenuItemForm, UserForm
 
 
@@ -29,6 +31,53 @@ def get_tax_rate():
         return setting.value
     except Settings.DoesNotExist:
         return '12'
+
+
+def build_receipt_data(order):
+    return {
+        'order_id': order.id,
+        'table_number': order.table.number,
+        'waiter': order.waiter.get_full_name() or order.waiter.username,
+        'created_at': order.created_at.isoformat(),
+        'items': [
+            {
+                'name': item.menu_item.name,
+                'quantity': item.quantity if not item.is_weight_item else None,
+                'weight_kg': float(item.weight_kg) if item.is_weight_item else None,
+                'price_at_time': item.price_at_time,
+                'total': item.total,
+            }
+            for item in order.items.all()
+        ],
+        'subtotal': order.subtotal,
+        'tax': order.tax,
+        'total': order.total,
+    }
+
+
+def save_receipt_snapshot(order, expires_at=None):
+    receipt, _ = SavedReceipt.objects.update_or_create(
+        order=order,
+        defaults={
+            'receipt_data': build_receipt_data(order),
+            'expires_at': expires_at or SavedReceipt.expiry_time(),
+        },
+    )
+    return receipt
+
+
+def ensure_recent_receipt_snapshots(now=None):
+    now = now or timezone.now()
+    cutoff = now - timedelta(days=SavedReceipt.RETENTION_DAYS)
+    completed_orders = (
+        Order.objects
+        .filter(status='completed', saved_receipt__isnull=True, updated_at__gt=cutoff)
+        .select_related('table', 'waiter')
+        .prefetch_related('items', 'items__menu_item')
+    )
+
+    for order in completed_orders:
+        save_receipt_snapshot(order, expires_at=SavedReceipt.expiry_time(order.updated_at))
 
 
 def login_view(request):
@@ -241,9 +290,16 @@ def save_order(request, order_id):
     except UserProfile.DoesNotExist:
         return redirect('login')
 
-    order = get_object_or_404(Order, id=order_id, status='active')
-    order.status = 'completed'
-    order.save()
+    with transaction.atomic():
+        order = get_object_or_404(
+            Order.objects.select_related('table', 'waiter').prefetch_related('items', 'items__menu_item'),
+            id=order_id,
+            status='active',
+        )
+        order.status = 'completed'
+        order.save()
+        save_receipt_snapshot(order)
+
     messages.success(request, f'Stol #{order.table.number} zakazi saqlandi!')
     return redirect('waiter_dashboard')
 
@@ -589,8 +645,69 @@ def clear_history(request):
         return redirect('login')
 
     if request.method == 'POST':
-        Order.objects.filter(status='completed').delete()
-        messages.success(request, 'Tarix tozalandi!')
+        SavedReceipt.delete_expired()
+
+        with transaction.atomic():
+            # Barcha completed order'larni chek'ni saklash oldin o'chirish
+            completed_orders = (
+                Order.objects
+                .filter(status='completed')
+                .select_related('table', 'waiter')
+                .prefetch_related('items', 'items__menu_item')
+            )
+            orders_count = completed_orders.count()
+            expires_at = SavedReceipt.expiry_time()
+
+            for order in completed_orders:
+                if not hasattr(order, 'saved_receipt'):
+                    save_receipt_snapshot(order, expires_at=expires_at)
+
+            # Endi o'chirish
+            completed_orders.delete()
+
+        messages.success(request, f'{orders_count} zakaz tarixga saqlandi va o\'chirildi!')
         return redirect('admin_reports')
 
     return redirect('admin_reports')
+
+
+@login_required
+def saved_receipts(request):
+    """Admin - 3 kunlik saqlangan cheklar"""
+    try:
+        if request.user.userprofile.role != 'admin':
+            return redirect('waiter_dashboard')
+    except UserProfile.DoesNotExist:
+        return redirect('login')
+
+    now = timezone.now()
+    SavedReceipt.delete_expired(now)
+    ensure_recent_receipt_snapshots(now)
+
+    # Faqat hali ham aktual cheklar
+    receipts = SavedReceipt.objects.filter(expires_at__gt=now).order_by('-created_at')
+
+    return render(request, 'pos/saved_receipts.html', {
+        'receipts': receipts,
+    })
+
+
+@login_required
+def receipt_detail(request, receipt_id):
+    """Saqlangan chekni ko'rish"""
+    try:
+        if request.user.userprofile.role != 'admin':
+            return redirect('waiter_dashboard')
+    except UserProfile.DoesNotExist:
+        return redirect('login')
+    
+    now = timezone.now()
+    SavedReceipt.delete_expired(now)
+
+    receipt = get_object_or_404(SavedReceipt, id=receipt_id, expires_at__gt=now)
+    tax_rate = get_tax_rate()
+    
+    return render(request, 'pos/receipt_detail.html', {
+        'receipt': receipt,
+        'tax_rate': tax_rate,
+    })
